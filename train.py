@@ -7,7 +7,7 @@ from utils import load_data, write_image, load_image, set_seed
 
 BATCH_SIZE = 64
 EPOCH = 30
-ONLY_TEST = False
+ONLY_TEST = True
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 set_seed(6666)
