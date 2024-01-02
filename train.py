@@ -1,79 +1,81 @@
+# 训练+测试
+
+from CNN import CNN
 import torch
+import torch.nn as nn
+import torch.utils.data as Data
 import torchvision
-from torch import nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-from utils import load_data, write_image, load_image, set_seed
+import matplotlib.pyplot as plt
+import os
+import cv2
 
+torch.manual_seed(1)  # 使用随机化种子使神经网络的初始化每次都相同
+
+# 超参数
+EPOCH = 5  # 训练整批数据的次数
 BATCH_SIZE = 64
-EPOCH = 30
-ONLY_TEST = True
+LR = 0.001  # 学习率
+DOWNLOAD_MNIST = True  # 表示还没有下载数据集，如果数据集下载好了就写False
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-set_seed(6666)
-tf = torchvision.transforms.Compose([
-    torchvision.transforms.Resize(size=(224, 224)),
-    torchvision.transforms.Grayscale(num_output_channels=3),
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
+# 下载mnist手写数据集
+train_data = torchvision.datasets.MNIST(
+    root='./data/',  # 保存或提取的位置  会放在当前文件夹中
+    train=True,  # true说明是用于训练的数据，false说明是用于测试的数据
+    transform=torchvision.transforms.ToTensor(),  # 转换PIL.Image or numpy.ndarray
 
-# 导入数据集
-test_data_list, test_name_list = load_data("test", is_overwrite=True, is_visualize=True)
+    download=DOWNLOAD_MNIST,  # 已经下载了就不需要下载了
+)
 
-train_dataset = torchvision.datasets.MNIST(root='./dataset', train=True, transform=tf, download=True)
-valid_dataset = torchvision.datasets.MNIST(root='./dataset', train=False, transform=tf, download=True)
-test_dataset = load_image("./visual_data")
+test_data = torchvision.datasets.MNIST(
+    root='./data/',
+    train=False  # 表明是测试集
+)
 
-train_dataloader = DataLoader(batch_size=BATCH_SIZE, dataset=train_dataset, shuffle=True, num_workers=0)
-valid_dataloader = DataLoader(batch_size=BATCH_SIZE, dataset=valid_dataset, shuffle=False, num_workers=0)
-test_dataloader = DataLoader(batch_size=BATCH_SIZE, dataset=test_dataset, shuffle=False, num_workers=0)
+# 批训练 50个samples， 1  channel，28x28 (50,1,28,28)
+# Torch中的DataLoader是用来包装数据的工具，它能帮我们有效迭代数据，这样就可以进行批训练
+train_loader = Data.DataLoader(
+    dataset=train_data,
+    batch_size=BATCH_SIZE,
+    shuffle=True  # 是否打乱数据，一般都打乱
+)
 
-if ONLY_TEST:
-    resnet50 = torch.load("./Resnet_best_model.bin")
-else:
-    resnet50 = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT)
-    resnet50.fc = nn.Linear(resnet50.fc.in_features, 10)
+# 进行测试
+# 为节约时间，测试时只测试前2000个
+#
+test_x = torch.unsqueeze(test_data.train_data, dim=1).type(torch.FloatTensor)[:2000] / 255
+# torch.unsqueeze(a) 是用来对数据维度进行扩充，这样shape就从(2000,28,28)->(2000,1,28,28)
+# 图像的pixel本来是0到255之间，除以255对图像进行归一化使取值范围在(0,1)
+test_y = test_data.test_labels[:2000]
 
-# 将原resnet50网络中的最后一个全连接层改成10分类的输出
 
-resnet50 = resnet50.to(device)
-loss_fn = nn.CrossEntropyLoss().to(device)
-optim = torch.optim.Adam(resnet50.fc.parameters(), lr=0.001)
-final_labels, best_accuracy = [], 0
+# 用class类来建立CNN模型
+# CNN流程：卷积(Conv2d)-> 激励函数(ReLU)->池化(MaxPooling)->
+#        卷积(Conv2d)-> 激励函数(ReLU)->池化(MaxPooling)->
+#        展平多维的卷积成的特征图->接入全连接层(Linear)->输出
+cnn = CNN()
+print(cnn)
 
-if not ONLY_TEST:
-    for epoch in range(EPOCH):
-        resnet50.train()
-        for data in tqdm(train_dataloader, total=len(train_dataloader), desc="Training"):
-            images, labels = data
-            images, labels = images.to(device), labels.to(device)
-            output = resnet50(images)
-            loss = loss_fn(output, labels)
+# 训练
+# 把x和y 都放入Variable中，然后放入cnn中计算output，最后再计算误差
 
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
+# 优化器选择Adam
+optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)
+# 损失函数
+loss_func = nn.CrossEntropyLoss()  # 目标标签是one-hotted
 
-        resnet50.eval()
-        with torch.no_grad():
-            accuracy = 0
-            for data in tqdm(valid_dataloader, total=len(valid_dataloader), desc="Validating"):
-                images, labels = data
-                images, labels = images.to(device), labels.to(device)
-                output = resnet50(images)
-                accuracy += ((output.argmax(1) == labels).sum())
-        print("第{}轮中，测试集上的准确率为：{}".format(epoch + 1, accuracy / len(valid_dataset)))
-        if best_accuracy < accuracy:
-            best_accuracy = accuracy
-            print("找到了最好的模型！准确率为：{}".format(best_accuracy))
-            torch.save(resnet50, "Resnet_best_model.bin")
+# 开始训练
+for epoch in range(EPOCH):
+    for step, (b_x, b_y) in enumerate(train_loader):  # 分配batch data
+        output = cnn(b_x)  # 先将数据放到cnn中计算output
+        loss = loss_func(output, b_y)  # 输出和真实标签的loss，二者位置不可颠倒
+        optimizer.zero_grad()  # 清除之前学到的梯度的参数
+        loss.backward()  # 反向传播，计算梯度
+        optimizer.step()  # 应用梯度
 
-with torch.no_grad():
-    resnet50.eval()
-    for data in tqdm(test_dataloader, total=len(test_dataloader), desc="Testing"):
-        data = data.to(device)
-        output = resnet50(data)
-        labels = torch.argmax(torch.softmax(output, dim=1), dim=1)
-        final_labels.extend(labels)
-write_image(image_list=test_data_list, label_list=final_labels, name_list=test_name_list)
+        if step % 50 == 0:
+            test_output = cnn(test_x)
+            pred_y = torch.max(test_output, 1)[1].data.numpy()
+            accuracy = float((pred_y == test_y.data.numpy()).astype(int).sum()) / float(test_y.size(0))
+            print('Epoch: ', int(epoch), '| train loss: %.4f' % loss.data.numpy(), '| test accuracy: %.2f' % accuracy)
+
+torch.save(cnn.state_dict(), 'cnn2.pkl')#保存模型
