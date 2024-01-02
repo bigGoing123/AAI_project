@@ -21,8 +21,8 @@ tf = torchvision.transforms.Compose([
 # 导入数据集
 test_data_list, test_name_list = load_data("test", is_overwrite=True, is_visualize=True)
 
-train_dataset = torchvision.datasets.MNIST(root='./dataset', train=True, transform=tf, download=False)
-valid_dataset = torchvision.datasets.MNIST(root='./dataset', train=False, transform=tf, download=False)
+train_dataset = torchvision.datasets.MNIST(root='./dataset', train=True, transform=tf, download=True)
+valid_dataset = torchvision.datasets.MNIST(root='./dataset', train=False, transform=tf, download=True)
 test_dataset = load_image("./visual_data")
 
 train_dataloader = DataLoader(batch_size=BATCH_SIZE, dataset=train_dataset, shuffle=True, num_workers=0)
