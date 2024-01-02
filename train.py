@@ -31,7 +31,7 @@ test_data = torchvision.datasets.MNIST(
     train=False  # 表明是测试集
 )
 
-# 批训练 50个samples， 1  channel，28x28 (50,1,28,28)
+
 # Torch中的DataLoader是用来包装数据的工具，它能帮我们有效迭代数据，这样就可以进行批训练
 train_loader = Data.DataLoader(
     dataset=train_data,
@@ -53,7 +53,6 @@ test_y = test_data.test_labels[:2000]
 #        卷积(Conv2d)-> 激励函数(ReLU)->池化(MaxPooling)->
 #        展平多维的卷积成的特征图->接入全连接层(Linear)->输出
 cnn = CNN()
-print(cnn)
 
 # 训练
 # 把x和y 都放入Variable中，然后放入cnn中计算output，最后再计算误差
