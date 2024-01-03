@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import pandas as pd
 # 加载.npy文件
-batch_size = 64  # 根据您的硬件调整这个数值
+batch_size = 64
 # 加载模型
 cnn = CNN()
 # 如果模型已经训练过，确保加载模型权重
@@ -16,13 +16,13 @@ cnn.load_state_dict(torch.load('cnn2.pkl'))
 # 将模型设置为评估模式
 cnn.eval()
 #将一个文件夹中的所有文件名写入到一个numpy数组中
-folder_path = './mnist/processed_data/test/'
+folder_path = './processed_data/train/'
 target_folder = './png_images/'
 test_dataset = NPYDataset(folder_path)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 results =[]
 with torch.no_grad():
-    for batch_idx, data in enumerate(test_loader):
+    for batch_idx, data in enumerate(tqdm(test_loader)):
 
         # 获取预测结果
         outputs = cnn(data)
