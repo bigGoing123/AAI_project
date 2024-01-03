@@ -1,8 +1,8 @@
 import os
-import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-class NPYDataset(Dataset):
+import numpy as np
+class testDataSet(Dataset):
     def __init__(self, root_dir):
         """
         初始化数据集
@@ -33,34 +33,7 @@ class NPYDataset(Dataset):
         label = self.labels[idx]
         return torch.from_numpy(data).unsqueeze(0).float(), label
 
-
-root_dir = './processed_data/train-modify'  # 替换为您的数据集根目录路径
-dataset = NPYDataset(root_dir)
-trainloader = DataLoader(dataset, batch_size=64, shuffle=True)
-
-from CNN import CNN
-
-batch_size = 64
-# 加载模型
-
-cnn = CNN()
-# 如果模型已经训练过，确保加载模型权重
-cnn.load_state_dict(torch.load('cnn2.pkl'))
-# 将模型设置为评估模式
-cnn.eval()
-from tqdm import tqdm
-
-for index, (data, label) in enumerate(tqdm(trainloader)):
-    # 模型预测
-
-    output = cnn(data)
-    _, predicted = torch.max(output.data, 1)
-    # 检查预测是否正确
-    batch_start_index = index * trainloader.batch_size
-
-    for idx, pred in enumerate(predicted):
-        absolute_idx = batch_start_index + idx  # 计算在整个数据集中的索引
-        if pred.item() != label[idx].item():
-            file_path = dataset.data_files[absolute_idx]
-            if os.path.exists(file_path):  # 确保文件存在
-                os.remove(file_path)
+    def delete_items(self, indices):
+        # 删除指定索引的数据
+        self.data_files = [d for i, d in enumerate(self.data_files) if i not in indices]
+        self.labels = [l for i, l in enumerate(self.labels) if i not in indices]

@@ -3,7 +3,7 @@ import numpy as np
 import os
 from tqdm import tqdm
 from CNN import CNN
-from NPYDataset import NPYDataset
+from testDataSet import testDataSet
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -18,7 +18,7 @@ cnn.eval()
 #将一个文件夹中的所有文件名写入到一个numpy数组中
 folder_path = './processed_data/train/'
 target_folder = './png_images/'
-test_dataset = NPYDataset(folder_path)
+test_dataset = testDataSet(folder_path)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 results =[]
 with torch.no_grad():
