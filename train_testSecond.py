@@ -16,24 +16,24 @@ EPOCH = 5 # 训练整批数据的次数
 BATCH_SIZE = 64
 LR = 0.001  # 学习率
 
-def delete_error_img():
+def delete_error_img(root_dir):
     """
     由于train数据集中图片噪音过多，现用官方数据训练完成的模型对一些标签错误的图片进行筛选，模型准确率已经在98%左右；
     如果模型预测的标签与实际标签不一致，则删除该图片
     """
 
-    root_dir = './processed_data/train'  # 替换为数据集根目录路径
+    # root_dir = './processed_data/train'  # 替换为数据集根目录路径
     dataset = trainDataSet(root_dir)
-    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
     # 加载模型
 
     cnn = CNN()
     # 如果模型已经训练过，确保加载模型权重
-    #该模型是用mnist官方数据集训练完成的
+    # 该模型是用mnist官方数据集训练完成的
     cnn.load_state_dict(torch.load('cnn2.pkl'))
     # 将模型设置为评估模式
     cnn.eval()
-    delect_index=[]#需要被删除的下标
+    correct_index = []  # 这是正确的绝对index
     for index, (data, label) in enumerate(tqdm(train_loader)):
         # 模型预测
         output = cnn(data)
@@ -42,13 +42,16 @@ def delete_error_img():
         batch_start_index = index * train_loader.batch_size
         for idx, pred in enumerate(predicted):
             absolute_idx = batch_start_index + idx  # 计算在整个数据集中的索引
-            if pred.item() != label[idx].item():
-                delect_index.append(absolute_idx)
+            if pred.item() == label[idx].item():
+                correct_index.append(absolute_idx)
+                # correct_file_label.append(pred.item())
+
     print("删除噪音数据中........大概2min")
-    dataset.delete_items(delect_index)
-    # 创建一个新的 DataLoader用来训练
-    new_dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-    return new_dataloader
+    dataset.get_correct_data(correct_index)
+    # dataset.set_labels(correct_file_label)
+    # 创建一个新的 dataset
+    new_dataset = train_loader.dataset
+    return new_dataset
 
 
 def train_for_new_model(train_loader):
@@ -70,9 +73,12 @@ def train_for_new_model(train_loader):
             loss.backward()  # 反向传播，计算梯度
             optimizer.step()  # 应用梯度
     torch.save(cnn2.state_dict(), 'cnnLast.pkl')#保存新模型
+
 if __name__ == '__main__':
     #需要保证当前路径下有processed_data文件夹
-    train_loader=delete_error_img()
+    root_dir = './processed_data/train'  # 替换为数据集根目录路径
+    train_set=delete_error_img(root_dir)
+    train_loader=DataLoader(train_set,batch_size=BATCH_SIZE,shuffle=True)
     print("开始训练新模型.........")
     train_for_new_model(train_loader)
     print("训练结束..........")

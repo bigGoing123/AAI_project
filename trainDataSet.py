@@ -33,8 +33,5 @@ class trainDataSet(Dataset):
         return torch.from_numpy(data).unsqueeze(0).float(), label
 
     def get_correct_data(self, indices):
-        # 删除指定索引的数据
         self.data_files = [d for i, d in enumerate(self.data_files) if i in indices]
         self.labels = [l for i, l in enumerate(self.labels) if i in indices]
-    def set_labels(self,labels):
-        self.labels=labels

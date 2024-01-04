@@ -61,7 +61,8 @@ cnn = CNN()
 optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)
 # 损失函数
 loss_func = nn.CrossEntropyLoss()  # 目标标签是one-hotted
-
+accuracies = []
+stt=[]
 # 开始训练
 for epoch in range(EPOCH):
     for step, (b_x, b_y) in enumerate(train_loader):  # 分配batch data
@@ -76,5 +77,14 @@ for epoch in range(EPOCH):
             pred_y = torch.max(test_output, 1)[1].data.numpy()
             accuracy = float((pred_y == test_y.data.numpy()).astype(int).sum()) / float(test_y.size(0))
             print('Epoch: ', int(epoch), '| train loss: %.4f' % loss.data.numpy(), '| test accuracy: %.2f' % accuracy)
+            accuracies.append(accuracy)
+            stt.append(step)
 
 torch.save(cnn.state_dict(), 'cnn2.pkl')#保存模型
+# plt.plot(stt, accuracies, label='Train Accuracy')
+# plt.xlabel('Step')
+# plt.ylabel('Accuracy')
+#
+# plt.title('Train Accuracy')
+# plt.legend()
+# plt.show()
