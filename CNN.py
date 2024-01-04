@@ -34,6 +34,7 @@ class CNN(nn.Module):  # 我们建立的CNN继承nn.Module这个模块
             # 输出图像大小 (32,14,14)
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout(0.5),  # 添加 Dropout 层，dropout 概率为 0.5
             # 输出图像大小(32,7,7)
         )
         # 建立全卷积连接层
