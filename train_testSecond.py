@@ -8,6 +8,7 @@ import torch.nn as nn
 from trainDataSet import trainDataSet
 import matplotlib.pyplot as plt
 import pandas as pd
+
 torch.manual_seed(1)  # 使用随机化种子使神经网络的初始化每次都相同
 from testDataSet import testDataSet
 # 超参数
@@ -22,7 +23,7 @@ def delete_error_img():
     """
 
     root_dir = './processed_data/train'  # 替换为数据集根目录路径
-    dataset = trainDataSet(root_dir,True)
+    dataset = trainDataSet(root_dir)
     train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
     # 加载模型
 
@@ -62,7 +63,6 @@ def train_for_new_model(train_loader):
     loss_func = nn.CrossEntropyLoss()  # 目标标签是one-hotted
     # 开始训练
     for epoch in range(EPOCH):
-        print("EPOCH",epoch)
         for step, (b_x, b_y) in enumerate(tqdm(train_loader)):  # 分配batch data
             output = cnn2(b_x)  # 先将数据放到cnn中计算output
             loss = loss_func(output, b_y)  # 输出和真实标签的loss，二者位置不可颠倒
