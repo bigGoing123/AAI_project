@@ -73,7 +73,7 @@ def train_for_new_model(train_loader):
 if __name__ == '__main__':
     #需要保证当前路径下有processed_data文件夹
     train_loader=delete_error_img()
-    # print("开始训练新模型.........")
+    print("开始训练新模型.........")
     train_for_new_model(train_loader)
     print("训练结束..........")
     # 加载模型
