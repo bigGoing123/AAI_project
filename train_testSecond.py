@@ -8,7 +8,7 @@ import torch.nn as nn
 from trainDataSet import trainDataSet
 import matplotlib.pyplot as plt
 import pandas as pd
-
+from torchvision import transforms
 torch.manual_seed(1)  # 使用随机化种子使神经网络的初始化每次都相同
 from testDataSet import testDataSet
 # 超参数
@@ -73,7 +73,61 @@ def train_for_new_model(train_loader):
             loss.backward()  # 反向传播，计算梯度
             optimizer.step()  # 应用梯度
     torch.save(cnn2.state_dict(), 'cnnLast.pkl')#保存新模型
+def get_img_from_npy(train_loader,target_dir,model_file):
+    """
+    :param train_loader: 传入一个dataloader，可以带标签也可以不带
+    :param target_dir:目标文件夹
+    :param cnn:训练好的模型，用来预测该npy文件的数字
+    :return: None
+    将传入的loader中所有的npy文件，在目标文件夹下保存为相应的图片
+    """
+    cnn = CNN()
+    # 如果模型已经训练过，确保加载模型权重
+    cnn.load_state_dict(torch.load(model_file))
+    # 将模型设置为评估模式
+    cnn.eval()
+    os.makedirs(target_dir, exist_ok=True)
+    # total_samples=[]
+    # correct_predictions=[]
+    k=0
+    for data in tqdm(train_loader):
+        outputs = cnn(data)
+        _, predicted = torch.max(outputs, 1)
+        # total_samples += labels.size(0)
+        # correct_predictions += (predicted == labels).sum().item()
+        for i in range(data.size(0)):  # 遍历批次中的每个图像
+            image_tensor = data[i]  # 获取单个图像张量，形状为 [channels, height, width]
+            k += 1
+            image = transforms.ToPILImage()(image_tensor.squeeze(0))
+            filename = f".//{target_dir}//{k}_{predicted[i]}.png"
+            image.save(filename)
+def get_test_results_tocsv(test_loader,model_file,target_dir):
+    """
 
+    :param test_loader: 加载一个dataloader，不包含labels
+    :param model_file: 训练好的模型文件
+    :param target_dir: 将最后的结果保存在目标文件夹下
+    :return: None
+    """
+    os.makedirs(target_dir, exist_ok=True)
+    # 加载模型
+    cnn = CNN()
+    # 如果模型已经训练过，确保加载模型权重
+    cnn.load_state_dict(torch.load(model_file))
+    # 将模型设置为评估模式
+    cnn.eval()
+    # 将一个文件夹中的所有文件名写入到一个numpy数组中
+    results = []
+    with torch.no_grad():
+        for index, data in enumerate(tqdm(test_loader)):
+            # 获取预测结果
+            outputs = cnn(data)
+            _, predicted = torch.max(outputs, 1)
+            results.extend(predicted.cpu().numpy())
+    # 处理或保存测试结果
+    file_names = np.array([str(f) + ".npy" for f in range(9900)])
+    predictions = pd.DataFrame({'fileNames': file_names, 'predication': results})
+    predictions.to_csv(f'{target_dir}/predictionsLast.csv', index=False)
 if __name__ == '__main__':
     #需要保证当前路径下有processed_data文件夹
     root_dir = './processed_data/train'  # 替换为数据集根目录路径
@@ -83,24 +137,13 @@ if __name__ == '__main__':
     train_for_new_model(train_loader)
     print("训练结束..........")
     # 加载模型
-    cnn2 = CNN()
-    # 如果模型已经训练过，确保加载模型权重
-    cnn2.load_state_dict(torch.load('cnnLast.pkl'))
-    # 将模型设置为评估模式
-    cnn2.eval()
+
     #将一个文件夹中的所有文件名写入到一个numpy数组中
     folder_path = './processed_data/test/'
     # target_folder = './png_images/new/'
     test_dataset = testDataSet(folder_path)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
-    results =[]
-    with torch.no_grad():
-        for index,data in enumerate(tqdm(test_loader)):
-            # 获取预测结果
-            outputs = cnn2(data)
-            _, predicted = torch.max(outputs, 1)
-            results.extend(predicted.cpu().numpy())
-    # 处理或保存测试结果
-    file_names=np.array([str(f)+".npy" for f in range(9900)])
-    predictions=pd.DataFrame({'fileNames':file_names,'predication':results})
-    predictions.to_csv('predictionsLast.csv',index=False)
+    #将 test文件的图片保存在img文件夹下
+    get_img_from_npy(test_loader,'./test_results/img','cnnLast.pkl')
+    #将result保存在csv文件夹中
+    get_test_results_tocsv(test_loader,'cnnLast.pkl','./test_results/')

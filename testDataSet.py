@@ -3,6 +3,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 class testDataSet(Dataset):
+    """
+    传入源文件夹地址，该文件夹下直接是所有的npy文件
+    """
     def __init__(self, root_dir):
         """
         初始化数据集

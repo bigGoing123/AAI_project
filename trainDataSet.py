@@ -3,6 +3,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 class trainDataSet(Dataset):
+    """
+    传入源文件夹地址，该文件夹下有0-9这10个子文件夹
+    """
     def __init__(self, root_dir):
         """
         初始化数据集
